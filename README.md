@@ -10,6 +10,19 @@ Install python dependencies
 pip install -r requirements.txt
 ```
 
+Setting your chess.com account
+
+```bash
+export CHESS_USERNAME=yourusername
+export CHESS_PASSWORD=yourpassword
+```
+
+run the program
+
+```bash
+python main.py
+```
+
 ## Disclaimer
 
 **This project is written only for educational purpose!!!**
