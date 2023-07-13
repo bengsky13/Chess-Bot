@@ -4,6 +4,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.keys import Keys
 import chess
 import chess.pgn
 import time
@@ -11,24 +12,32 @@ from stockfishpy import Engine
 import os
 import re
 import random
+from dotenv import load_dotenv
+
+# Load the environment variables
+load_dotenv()
+
+
 class ChessBot:
     def __init__(self):
-        self.engine = Engine('./stockfish', param={'Threads': 10, 'Ponder': None})
-        driver = webdriver.Chrome('chromedriver')
+        self.engine = Engine('./stockfish2.exe',
+                             param={'Threads': 10, 'Ponder': None})
+        driver = webdriver.Chrome()
         self.move_number = 1
         self.driver = driver
-        # self.board_id = "board-vs-personalities" # computer
-        self.board_id = "board-single" # online
+        self.board_id = "board-vs-personalities"  # computer
+        self.board_id = "board-single"  # online
         self.username = os.getenv("CHESS_USERNAME")
         self.password = os.getenv("CHESS_PASSWORD")
         self.login_url = "https://www.chess.com/login_and_go?returnUrl=https://www.chess.com/"
-        self.play_url = "https://www.chess.com/play/online"
+        self.play_url = "https://www.chess.com/play/online" if self.board_id == "board-single" else "https://www.chess.com/play/computer"
         self.color = "white"
 
     def login(self):
         driver = self.driver
         driver.get(self.login_url)
-        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "username"))).send_keys(self.username)
+        WebDriverWait(driver, 10).until(EC.presence_of_element_located(
+            (By.ID, "username"))).send_keys(self.username)
         driver.find_element(By.ID, "password").send_keys(self.password)
         driver.find_element(By.ID, "login").click()
         if driver.current_url == "https://www.chess.com/home":
@@ -44,19 +53,39 @@ class ChessBot:
         self.move_number = 1
         driver = self.driver
         driver.get(self.play_url)
-        try:
-            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, '[data-cy="new-game-index-play"]'))).click()
-            html = WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.CLASS_NAME, 'live-game-start-component'))).get_attribute("innerHTML")
-        except:
-            return self.find_match()
+        if self.board_id == "board-single":
+            try:
+                print("VS People")
+                WebDriverWait(driver, 10).until(EC.presence_of_element_located(
+                    (By.CSS_SELECTOR, '[data-cy="new-game-index-play"]'))).click()
+                html = WebDriverWait(driver, 30).until(EC.presence_of_element_located(
+                    (By.CLASS_NAME, 'live-game-start-component'))).get_attribute("innerHTML")
+            except:
+                return self.find_match()
+        else:
+            try:
+                print("VS Computer")
+                time.sleep(3)
+                ActionChains(driver).send_keys(Keys.ESCAPE).perform()
+                WebDriverWait(driver, 10).until(EC.presence_of_element_located(
+                    (By.CSS_SELECTOR, '#board-layout-sidebar > div > div.selection-menu-footer > button'))).click()
+                WebDriverWait(driver, 10).until(EC.presence_of_element_located(
+                    (By.CSS_SELECTOR, '#board-layout-sidebar > div > div.selection-footer > button'))).click()
+                html = WebDriverWait(driver, 10).until(EC.presence_of_element_located(
+                    (By.CLASS_NAME, 'user-username-component'))).get_attribute("innerHTML")
+            except:
+                return self.find_match()
+
         time.sleep(3)
+
+        if self.board_id == "board-vs-personalities":
+            return 'white'
         if '<strong>New Game</strong> <br> <span><a href="https://www.chess.com/member/'+self.username in html:
             self.color = "white"
             return "white"
         else:
             self.color = "black"
             return "black"
-
 
     def get_color(self):
         print('a')
@@ -87,31 +116,38 @@ class ChessBot:
             chessboard.appendChild(element);
         """, best_move[0], best_move[1], best_move[2], best_move[3], self.board_id)
         return
+
     def move_piece(self):
-        driver = self.driver
-        if self.move_number > 30:
-            rand = 0.15
-        elif self.move_number > 20:
-            rand = random.randint(2, 5)
-        elif self.move_number > 10:
-            rand = random.randint(5, 10)
-        else:
-            rand = 0.05
-        self.move_number += 1
-        time.sleep(rand)
-        driver.execute_script("window.scrollTo(0, 0);")
-        board = driver.find_element(By.ID, self.board_id)
-        piece_id = driver.find_element(By.ID, 'target-piece1').get_attribute("data-piece-id")
-        element = driver.find_element(By.CLASS_NAME, 'square-'+piece_id)
-        ActionChains(driver).move_to_element_with_offset(board, element.location['x']-25, element.location['y']-25).click().perform()
-        time.sleep(0.05)
-        piece_id = driver.find_element(By.ID, 'target-piece2').get_attribute("data-piece-id")
-        element = driver.find_element(By.CLASS_NAME, 'square-'+piece_id)
-        ActionChains(driver).move_to_element_with_offset(board, element.location['x']-25, element.location['y']-25).click().perform()
-        self.driver.execute_script("""
-        document.getElementById("target-piece1").remove()
-        document.getElementById("target-piece2").remove()
-        """)
+        try:
+            driver = self.driver
+            if self.move_number > 30:
+                rand = 0.15
+            elif self.move_number > 20:
+                rand = random.randint(2, 5)
+            elif self.move_number > 10:
+                rand = random.randint(5, 10)
+            else:
+                rand = 0.05
+            self.move_number += 1
+            time.sleep(rand)
+            driver.execute_script("window.scrollTo(0, 0);")
+
+            board = driver.find_element(By.ID, self.board_id)
+            element = driver.find_element(By.XPATH, '//*[@id="target-piece1"]')
+            print(element.location)
+            ActionChains(driver).move_to_element_with_offset(
+                element, 30, 30).click().perform()
+            time.sleep(0.05)
+            element = driver.find_element(By.XPATH, '//*[@id="target-piece2"]')
+            ActionChains(driver).move_to_element_with_offset(
+                element, 30, 30).click().perform()
+
+            self.driver.execute_script("""
+            document.getElementById("target-piece1").remove()
+            document.getElementById("target-piece2").remove()
+            """)
+        except Exception as e:
+            print(e)
 
     def get_pgn(self, pgn):
         driver = self.driver
@@ -120,10 +156,11 @@ class ChessBot:
             time.sleep(1)
             try:
                 try:
-                    driver.find_element(By.CLASS_NAME, "game-over-modal-content")
+                    driver.find_element(
+                        By.CSS_SELECTOR, "[data-cy=\"sidebar-game-over-new-game-button\"]").click()
                     print("Game Ended")
                     color = chess.find_match()
-                    print("Color:",color)
+                    print("Color:", color)
                     if "white" == color:
                         chess.highlight_move("e2e4")
                         chess.move_piece()
@@ -131,22 +168,26 @@ class ChessBot:
                     found = False
                 last_move = None
                 opponent = "white" if self.color == "black" else "black"
-                elements = driver.find_element(By.CLASS_NAME, 'vertical-move-list').find_elements(By.CLASS_NAME, 'move')
+                elements = driver.find_element(
+                    By.CLASS_NAME, 'vertical-move-list').find_elements(By.CLASS_NAME, 'move')
                 if self.color == "black" and len(elements) > 0:
                     try:
-                        last_move = elements[-1].find_element(By.CLASS_NAME, self.color)
+                        last_move = elements[-1].find_element(
+                            By.CLASS_NAME, self.color)
                     except:
                         found = True
                 else:
-                    last_move = elements[-1].find_element(By.CLASS_NAME, opponent).get_attribute("innerHTML")
+                    last_move = elements[-1].find_element(
+                        By.CLASS_NAME, opponent).get_attribute("innerHTML")
                     found = True
             except:
                 found = False
 
         html = ""
-        elements = driver.find_element(By.CLASS_NAME, 'vertical-move-list').find_elements(By.CLASS_NAME, 'move')
+        elements = driver.find_element(
+            By.CLASS_NAME, 'vertical-move-list').find_elements(By.CLASS_NAME, 'move')
         for i in elements:
-            for j in i.find_elements(By.CLASS_NAME, "node"):            
+            for j in i.find_elements(By.CLASS_NAME, "node"):
                 html += j.get_attribute("outerHTML").strip()
         pattern = r'<div .*?>(.*?)</div>'
         span_pattern = r'<span.*?>(.*?)</span>'
@@ -161,6 +202,7 @@ class ChessBot:
         with open("pgn.pgn", "w") as file:
             file.write(pgn)
         return pgn, last_move
+
     def get_best_move(self):
         engine = self.engine
         try:
