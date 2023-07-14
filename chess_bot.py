@@ -80,7 +80,7 @@ class ChessBot:
 
         if self.board_id == "board-vs-personalities":
             return 'white'
-        if '<strong>New Game</strong> <br> <span><a href="https://www.chess.com/member/'+self.username in html:
+        if '<strong>New Game</strong> <br> <span><a href="https://www.chess.com/member/'+self.username.lower() in html:
             self.color = "white"
             return "white"
         else:
