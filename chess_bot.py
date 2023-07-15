@@ -8,9 +8,12 @@ import chess
 import chess.pgn
 import time
 from stockfishpy import Engine
-import os
 import re
+import os
 import random
+from dotenv import load_dotenv
+load_dotenv()
+
 class ChessBot:
     def __init__(self):
         self.engine = Engine('./stockfish', param={'Threads': 10, 'Ponder': None})
