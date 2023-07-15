@@ -27,6 +27,7 @@ class ChessBot:
 
     def login(self):
         driver = self.driver
+        print(driver.get_window_size())
         driver.get(self.login_url)
         WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "username"))).send_keys(self.username)
         driver.find_element(By.ID, "password").send_keys(self.password)
@@ -88,30 +89,34 @@ class ChessBot:
         """, best_move[0], best_move[1], best_move[2], best_move[3], self.board_id)
         return
     def move_piece(self):
-        driver = self.driver
-        if self.move_number > 30:
-            rand = 0.15
-        elif self.move_number > 20:
-            rand = random.randint(2, 5)
-        elif self.move_number > 10:
-            rand = random.randint(5, 10)
-        else:
-            rand = 0.05
-        self.move_number += 1
-        time.sleep(rand)
-        driver.execute_script("window.scrollTo(0, 0);")
-        board = driver.find_element(By.ID, self.board_id)
-        piece_id = driver.find_element(By.ID, 'target-piece1').get_attribute("data-piece-id")
-        element = driver.find_element(By.CLASS_NAME, 'square-'+piece_id)
-        ActionChains(driver).move_to_element_with_offset(board, element.location['x']-25, element.location['y']-25).click().perform()
-        time.sleep(0.05)
-        piece_id = driver.find_element(By.ID, 'target-piece2').get_attribute("data-piece-id")
-        element = driver.find_element(By.CLASS_NAME, 'square-'+piece_id)
-        ActionChains(driver).move_to_element_with_offset(board, element.location['x']-25, element.location['y']-25).click().perform()
-        self.driver.execute_script("""
-        document.getElementById("target-piece1").remove()
-        document.getElementById("target-piece2").remove()
-        """)
+        try:
+            driver = self.driver
+            if self.move_number > 30:
+                rand = 0.15
+            elif self.move_number > 20:
+                rand = random.randint(2, 5)
+            elif self.move_number > 10:
+                rand = random.randint(5, 10)
+            else:
+                rand = 0.05
+            self.move_number += 1
+            time.sleep(rand)
+            driver.execute_script("window.scrollTo(0, 0);")
+
+            element = driver.find_element(By.XPATH, '//*[@id="target-piece1"]')
+            ActionChains(driver).move_to_element_with_offset(
+                element, 30, 30).click().perform()
+            time.sleep(0.05)
+            element = driver.find_element(By.XPATH, '//*[@id="target-piece2"]')
+            ActionChains(driver).move_to_element_with_offset(
+                element, 30, 30).click().perform()
+
+            self.driver.execute_script("""
+            document.getElementById("target-piece1").remove()
+            document.getElementById("target-piece2").remove()
+            """)
+        except Exception as e:
+            print(e)
 
     def get_pgn(self, pgn):
         driver = self.driver
@@ -122,11 +127,11 @@ class ChessBot:
                 try:
                     driver.find_element(By.CLASS_NAME, "game-over-modal-content")
                     print("Game Ended")
-                    color = chess.find_match()
+                    color = self.find_match()
                     print("Color:",color)
                     if "white" == color:
-                        chess.highlight_move("e2e4")
-                        chess.move_piece()
+                        self.highlight_move("e2e4")
+                        self.move_piece()
                 except:
                     found = False
                 last_move = None
