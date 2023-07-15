@@ -9,6 +9,7 @@ import chess.pgn
 import time
 from stockfishpy import Engine
 import re
+import os
 import random
 from dotenv import load_dotenv
 load_dotenv()
