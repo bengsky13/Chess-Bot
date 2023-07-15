@@ -3,7 +3,7 @@ import sys
 import re
 
 class Engine(subprocess.Popen):
-    def __init__(self, stockfish_path='', depth=16, param={}):
+    def __init__(self, stockfish_path='./stockfish', depth=16, param={}):
         try:
             subprocess.Popen.__init__(self, stockfish_path, universal_newlines=True,
                                       stdin=subprocess.PIPE,

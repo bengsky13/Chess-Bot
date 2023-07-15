@@ -6,7 +6,8 @@ chess.login()
 time.sleep(1)
 
 color = chess.find_match()
-print("Color:",color)
+
+print("Color:", color)
 if "white" == color:
     chess.highlight_move("e2e4")
     chess.move_piece()
